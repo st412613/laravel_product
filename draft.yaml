@@ -1,0 +1,40 @@
+models:
+  User:
+    name: string
+    email: string unique
+    relationships:
+      hasMany: Product, Currency
+
+  Product:
+    name: string
+    user_id: id foreign:users.id onDelete:cascade
+    relationships:
+      belongsTo: User
+      hasMany: Price
+
+  Currency:
+    code: string:3
+    name: string
+    user_id: id foreign:users.id onDelete:cascade
+    relationships:
+      belongsTo: User
+      hasMany: Price
+
+  Price:
+    product_id: id foreign:products.id onDelete:cascade
+    currency_id: id foreign:currencies.id onDelete:cascade
+    amount: decimal:10,2
+    relationships:
+      belongsTo: Product, Currency
+
+seeders: User, Product, Currency, Price
+
+controllers:
+  User:
+    resource: api
+  Product:
+    resource: api
+  Currency:
+    resource: api
+  Price:
+    resource: api

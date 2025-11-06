@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CurrencyStoreRequest extends FormRequest
+class UserLoginRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -17,12 +17,18 @@ class CurrencyStoreRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      */
+   
     public function rules(): array
     {
         return [
-            'code' => ['required', 'string', 'max:3'],
-            'name' => ['required', 'string'],
-            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'email' => 'required|email',
+            'password' => 'required|string',
         ];
     }
+
 }
+
+
+
+
+

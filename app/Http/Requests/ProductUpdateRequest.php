@@ -21,7 +21,7 @@ class ProductUpdateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string'],
-            'user_id' => ['required', 'integer', 'exists:users.id,id'],
+            'user_id' => ['required', 'integer', 'exists:users,id'],
         ];
     }
 }

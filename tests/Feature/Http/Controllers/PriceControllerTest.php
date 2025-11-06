@@ -10,6 +10,8 @@ use Illuminate\Foundation\Testing\WithFaker;
 use JMac\Testing\Traits\AdditionalAssertions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use Laravel\Sanctum\Sanctum;
+use App\Models\User;
 
 /**
  * @see \App\Http\Controllers\PriceController
@@ -22,6 +24,7 @@ final class PriceControllerTest extends TestCase
     public function index_behaves_as_expected(): void
     {
         $prices = Price::factory()->count(3)->create();
+        Sanctum::actingAs(User::factory()->create());
 
         $response = $this->get(route('prices.index'));
 
@@ -45,6 +48,8 @@ final class PriceControllerTest extends TestCase
     {
         $product = Product::factory()->create();
         $currency = Currency::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
+
         $amount = fake()->randomFloat(/** decimal_attributes **/);
 
         $response = $this->post(route('prices.store'), [
@@ -70,6 +75,7 @@ final class PriceControllerTest extends TestCase
     public function show_behaves_as_expected(): void
     {
         $price = Price::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
 
         $response = $this->get(route('prices.show', $price));
 
@@ -94,6 +100,7 @@ final class PriceControllerTest extends TestCase
         $price = Price::factory()->create();
         $product = Product::factory()->create();
         $currency = Currency::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
         $amount = fake()->randomFloat(/** decimal_attributes **/);
 
         $response = $this->put(route('prices.update', $price), [
@@ -117,6 +124,7 @@ final class PriceControllerTest extends TestCase
     public function destroy_deletes_and_responds_with(): void
     {
         $price = Price::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
 
         $response = $this->delete(route('prices.destroy', $price));
 

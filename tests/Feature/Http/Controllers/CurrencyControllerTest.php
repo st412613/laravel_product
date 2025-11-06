@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\WithFaker;
 use JMac\Testing\Traits\AdditionalAssertions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use Laravel\Sanctum\Sanctum;
 
 /**
  * @see \App\Http\Controllers\CurrencyController
@@ -21,6 +22,7 @@ final class CurrencyControllerTest extends TestCase
     public function index_behaves_as_expected(): void
     {
         $currencies = Currency::factory()->count(3)->create();
+        Sanctum::actingAs(User::factory()->create());
 
         $response = $this->get(route('currencies.index'));
 
@@ -45,6 +47,7 @@ final class CurrencyControllerTest extends TestCase
         $code = fake()->word();
         $name = fake()->name();
         $user = User::factory()->create();
+        Sanctum::actingAs($user);
 
         $response = $this->post(route('currencies.store'), [
             'code' => $code,
@@ -69,6 +72,7 @@ final class CurrencyControllerTest extends TestCase
     public function show_behaves_as_expected(): void
     {
         $currency = Currency::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
 
         $response = $this->get(route('currencies.show', $currency));
 
@@ -91,6 +95,8 @@ final class CurrencyControllerTest extends TestCase
     public function update_behaves_as_expected(): void
     {
         $currency = Currency::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
+
         $code = fake()->word();
         $name = fake()->name();
         $user = User::factory()->create();
@@ -116,6 +122,7 @@ final class CurrencyControllerTest extends TestCase
     public function destroy_deletes_and_responds_with(): void
     {
         $currency = Currency::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
 
         $response = $this->delete(route('currencies.destroy', $currency));
 

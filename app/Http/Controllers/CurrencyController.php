@@ -20,8 +20,12 @@ class CurrencyController extends Controller
     }
 
     public function store(CurrencyStoreRequest $request): CurrencyResource
-    {
-        $currency = Currency::create($request->validated());
+    {   
+         $data = $request->validated();
+        // $currency = Currency::create($request->validated());
+         $data['user_id'] = $request->user()->id;
+
+         $currency = Currency::create($data);
 
         return new CurrencyResource($currency);
     }

@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\WithFaker;
 use JMac\Testing\Traits\AdditionalAssertions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use Laravel\Sanctum\Sanctum;
 
 /**
  * @see \App\Http\Controllers\ProductController
@@ -21,6 +22,9 @@ final class ProductControllerTest extends TestCase
     public function index_behaves_as_expected(): void
     {
         $products = Product::factory()->count(3)->create();
+        Sanctum::actingAs(User::factory()->create());
+
+
 
         $response = $this->get(route('products.index'));
 
@@ -44,6 +48,8 @@ final class ProductControllerTest extends TestCase
     {
         $name = fake()->name();
         $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        
 
         $response = $this->post(route('products.store'), [
             'name' => $name,
@@ -66,6 +72,7 @@ final class ProductControllerTest extends TestCase
     public function show_behaves_as_expected(): void
     {
         $product = Product::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
 
         $response = $this->get(route('products.show', $product));
 
@@ -90,6 +97,7 @@ final class ProductControllerTest extends TestCase
         $product = Product::factory()->create();
         $name = fake()->name();
         $user = User::factory()->create();
+        Sanctum::actingAs($user);
 
         $response = $this->put(route('products.update', $product), [
             'name' => $name,
@@ -110,6 +118,7 @@ final class ProductControllerTest extends TestCase
     public function destroy_deletes_and_responds_with(): void
     {
         $product = Product::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
 
         $response = $this->delete(route('products.destroy', $product));
 

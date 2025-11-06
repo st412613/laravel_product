@@ -2,6 +2,7 @@ models:
   User:
     name: string
     email: string unique
+    password: string
     relationships:
       hasMany: Product, Currency
 

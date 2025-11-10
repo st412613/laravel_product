@@ -11,11 +11,13 @@ class ProductStoreRequest extends FormRequest
         return true;
     }
 
+    
+
     public function rules(): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'user_id' => ['required', 'integer', 'exists:users,id'],
+            // 'user_id' => ['required', 'integer', 'exists:users,id'],
         ];
     }
 }

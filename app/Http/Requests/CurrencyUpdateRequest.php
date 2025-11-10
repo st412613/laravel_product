@@ -9,9 +9,18 @@ class CurrencyUpdateRequest extends FormRequest
     /**
      * Determine if the user is authorized to make this request.
      */
+
     public function authorize(): bool
     {
-        return true;
+         return $this->user()->id === $this->currency->user_id;
+    } 
+
+
+     protected function prepareForValidation()
+    {
+        $this->merge([
+            'user_id' => $this->user()->id,
+        ]);
     }
 
     /**
@@ -20,7 +29,7 @@ class CurrencyUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => ['required', 'string'],
+            'code' => ['required', 'string', 'max:3'],
             'name' => ['required', 'string'],
             'user_id' => ['required', 'integer', 'exists:users,id'],
         ];

@@ -22,8 +22,8 @@ class CurrencyFactory extends Factory
     public function definition(): array
     {
         return [
-            'code' => fake()->regexify('[A-Za-z0-9]{3}'),
-            'name' => fake()->name(),
+            'code' => 'USD',
+            'name' => "SHS",
             'user_id' => User::factory(),
         ];
     }

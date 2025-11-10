@@ -10,13 +10,14 @@ use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
+
 class CurrencyController extends Controller
 {
     public function index(Request $request): CurrencyCollection
     {
-        $currencies = Currency::all();
-
-        return new CurrencyCollection($currencies);
+         $user = $request->user();
+         $currencies = Currency::where('user_id', $user->id)->get();
+         return new CurrencyCollection($currencies);
     }
 
     public function store(CurrencyStoreRequest $request): CurrencyResource
@@ -36,12 +37,15 @@ class CurrencyController extends Controller
     }
 
     public function update(CurrencyUpdateRequest $request, Currency $currency): CurrencyResource
-    {
-        $currency->update($request->validated());
+    {   
+        //  $this->authorize('update', $currency);
+        $data = $request->validated();
+        $data['user_id'] = $request->user()->id;
+        $currency->update($data);
 
         return new CurrencyResource($currency);
     }
-
+    
     public function destroy(Request $request, Currency $currency): Response
     {
         $currency->delete();

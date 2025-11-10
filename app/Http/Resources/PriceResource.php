@@ -20,4 +20,6 @@ class PriceResource extends JsonResource
             'currency' => CurrencyResource::make($this->whenLoaded('currency')),
         ];
     }
+
+    
 }

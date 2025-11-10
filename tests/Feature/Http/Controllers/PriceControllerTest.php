@@ -44,15 +44,19 @@ final class PriceControllerTest extends TestCase
     }
 
     #[Test]
-    public function store_saves(): void
+     public function test_store_saves(): void
     {
-        $product = Product::factory()->create();
-        $currency = Currency::factory()->create();
-        Sanctum::actingAs(User::factory()->create());
 
-        $amount = fake()->randomFloat(/** decimal_attributes **/);
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
 
-        $response = $this->post(route('prices.store'), [
+        $product = Product::factory()->create(['user_id' => $user->id]);
+        $currency = Currency::factory()->create(['user_id' => $user->id]);
+
+        $amount = fake()->randomFloat(2, 0.01, 99999999.99);
+
+
+        $response = $this->postJson(route('prices.store'), [
             'product_id' => $product->id,
             'currency_id' => $currency->id,
             'amount' => $amount,
@@ -63,12 +67,15 @@ final class PriceControllerTest extends TestCase
             ->where('currency_id', $currency->id)
             ->where('amount', $amount)
             ->get();
+
         $this->assertCount(1, $prices);
         $price = $prices->first();
 
-        $response->assertCreated();
+        //  Response validation
+        $response->assertStatus(201); // or assertCreated()
         $response->assertJsonStructure([]);
-    }
+}
+
 
 
     #[Test]
@@ -97,18 +104,18 @@ final class PriceControllerTest extends TestCase
     #[Test]
     public function update_behaves_as_expected(): void
     {
-        $price = Price::factory()->create();
-        $product = Product::factory()->create();
         $currency = Currency::factory()->create();
+        $product = Product::factory()->create();
+        $price = Price::factory()->create();
         Sanctum::actingAs(User::factory()->create());
-        $amount = fake()->randomFloat(/** decimal_attributes **/);
-
+        $amount = fake()->randomFloat(2, 0.01, 99999999.99);
+        
         $response = $this->put(route('prices.update', $price), [
             'product_id' => $product->id,
             'currency_id' => $currency->id,
             'amount' => $amount,
         ]);
-
+        
         $price->refresh();
 
         $response->assertOk();

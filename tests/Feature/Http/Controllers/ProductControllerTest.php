@@ -126,4 +126,37 @@ final class ProductControllerTest extends TestCase
 
         $this->assertModelMissing($product);
     }
+
+    #[Test]
+    public function index_returns_only_authenticated_users_products(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $myProducts = Product::factory()->count(2)->for($user)->create();
+        Product::factory()->count(2)->for($otherUser)->create();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson(route('products.index'));
+
+        $response->assertOk();
+        $response->assertJsonCount(2, 'data'); // assuming a 'data' wrapper in your response
+        foreach ($myProducts as $product) {
+            $response->assertJsonFragment(['name' => $product->name]);
+        }
+    }
+
+    #[Test]
+    public function store_fails_validation_when_required_fields_missing(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $response = $this->postJson(route('products.store'), []);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['name']);
+    }
+    
+
 }

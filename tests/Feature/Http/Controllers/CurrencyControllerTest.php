@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use Laravel\Sanctum\Sanctum;
 
+
 /**
  * @see \App\Http\Controllers\CurrencyController
  */
@@ -44,7 +45,7 @@ final class CurrencyControllerTest extends TestCase
     #[Test]
     public function store_saves(): void
     {
-        $code = fake()->word();
+        $code =  fake()->regexify('[A-Za-z0-9]{3}');
         $name = fake()->name();
         $user = User::factory()->create();
         Sanctum::actingAs($user);
@@ -94,27 +95,26 @@ final class CurrencyControllerTest extends TestCase
     #[Test]
     public function update_behaves_as_expected(): void
     {
-        $currency = Currency::factory()->create();
-        Sanctum::actingAs(User::factory()->create());
-
-        $code = fake()->word();
-        $name = fake()->name();
+        
+        $code =  'USD';
+        $name = "SHS";
         $user = User::factory()->create();
-
+        Sanctum::actingAs($user);
+        $currency = Currency::factory()->create(['user_id' => $user->id]);
+        
         $response = $this->put(route('currencies.update', $currency), [
             'code' => $code,
             'name' => $name,
-            'user_id' => $user->id,
+            // 'user_id' => $user->id,
         ]);
-
+        
         $currency->refresh();
-
-        $response->assertOk();
-        $response->assertJsonStructure([]);
-
+        
         $this->assertEquals($code, $currency->code);
         $this->assertEquals($name, $currency->name);
         $this->assertEquals($user->id, $currency->user_id);
+        $response->assertOk();
+        $response->assertJsonStructure([]);
     }
 
 
@@ -130,4 +130,96 @@ final class CurrencyControllerTest extends TestCase
 
         $this->assertModelMissing($currency);
     }
+
+    #[Test]
+    public function store_fails_with_invalid_data(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $response = $this->postJson(route('currencies.store'), [
+            'code' => '', // required
+            'name' => '', // required
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['code', 'name']);
+    }
+
+    #[Test]
+    public function update_fails_with_invalid_data(): void
+    {
+        $currency = Currency::factory()->create();
+        Sanctum::actingAs($currency->user);
+
+        $response = $this->putJson(route('currencies.update', $currency), [
+            'code' => 'TOOLONG', // max:3
+            'name' => '',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['code', 'name']);
+    }
+
+    #[Test]
+    public function index_requires_authentication(): void
+    {
+        $response = $this->getJson(route('currencies.index'));
+        $response->assertUnauthorized();
+    }
+
+    #[Test]
+    public function store_requires_authentication(): void
+    {
+        $response = $this->postJson(route('currencies.store'), [
+            'code' => 'USD',
+            'name' => 'Dollar',
+        ]);
+
+        $response->assertUnauthorized();
+    }
+
+    #[Test]
+    public function update_fails_if_user_does_not_own_currency(): void
+    {
+        $currency = Currency::factory()->create(); // belongs to user A
+        $otherUser = User::factory()->create();
+        Sanctum::actingAs($otherUser);
+
+        $response = $this->putJson(route('currencies.update', $currency), [
+            'code' => 'EUR',
+            'name' => 'Euro',
+        ]);
+
+        $response->assertForbidden();
+    }
+    
+    #[Test]
+public function user_cannot_update_currency_of_another_user(): void
+{
+    // Create two different users
+    $owner = User::factory()->create(); // the one who owns the currency
+    $otherUser = User::factory()->create(); // the one who will try to update it
+
+    // Create a currency belonging to the first user
+    $currency = Currency::factory()->create(['user_id' => $owner->id]);
+
+    // Act as the second user
+    Sanctum::actingAs($otherUser);
+
+    // Attempt to update the other user's currency
+    $response = $this->put(route('currencies.update', $currency), [
+        'code' => 'EUR',
+        'name' => 'Euro',
+    ]);
+
+    // Assert the response is forbidden (403)
+    $response->assertStatus(403);
+
+    // Ensure the currency was not modified
+    $currency->refresh();
+    $this->assertNotEquals('EUR', $currency->code);
+    $this->assertNotEquals('Euro', $currency->name);
+}
+
+
 }

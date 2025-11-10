@@ -9,21 +9,48 @@ use App\Http\Resources\PriceResource;
 use App\Models\Price;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Models\Product;
+use App\Models\Currency;
 
 class PriceController extends Controller
 {
     public function index(Request $request): PriceCollection
     {
-        $prices = Price::all();
+         $userId = $request->user()->id;
 
-        return new PriceCollection($prices);
+         $prices = Price::whereHas('product', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+         })
+         ->whereHas('currency', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })
+        ->get();
+
+        return new PriceCollection($prices); $prices = Price::all();
+
+        // return new PriceCollection($prices);
     }
 
     public function store(PriceStoreRequest $request): PriceResource
     {
+        $user = $request->user();
+        $product = Product::where('id', $request->product_id)
+        ->where('user_id', $user->id)
+        ->first();
+
+        $currency = Currency::where('id', $request->currency_id)
+        ->where('user_id', $user->id)
+        ->first();
+
+    if (! $product || ! $currency) {
+        abort(403, 'Unauthorized action.');
+    }
+
         $price = Price::create($request->validated());
 
-        return new PriceResource($price);
+        return new PriceResource($price);$price = Price::create($request->validated());
+
+        // return new PriceResource($price);
     }
 
     public function show(Request $request, Price $price): PriceResource

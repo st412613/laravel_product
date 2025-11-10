@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Laravel\Sanctum\Sanctum;
 
 class CurrencyStoreRequest extends FormRequest
 {
@@ -11,7 +12,14 @@ class CurrencyStoreRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+       return true;
+    }
+
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            'user_id' => $this->user()->id,
+        ]);
     }
 
     /**
@@ -22,7 +30,7 @@ class CurrencyStoreRequest extends FormRequest
         return [
             'code' => ['required', 'string', 'max:3'],
             'name' => ['required', 'string'],
-            'user_id' => ['required', 'integer', 'exists:users,id'],
+            // 'user_id' => ['required', 'integer', 'exists:users,id'],
         ];
     }
 }

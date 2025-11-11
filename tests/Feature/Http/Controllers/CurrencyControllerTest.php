@@ -69,17 +69,50 @@ final class CurrencyControllerTest extends TestCase
     }
 
 
-    #[Test]
+   #[Test]
     public function show_behaves_as_expected(): void
     {
-        $currency = Currency::factory()->create();
-        Sanctum::actingAs(User::factory()->create());
+        // Create a user and a currency belonging to that user
+        $user = User::factory()->create();
+        $currency = Currency::factory()->create(['user_id' => $user->id]);
+
+        // Authenticate as the owner
+        Sanctum::actingAs($user);
 
         $response = $this->get(route('currencies.show', $currency));
 
         $response->assertOk();
-        $response->assertJsonStructure([]);
+        $response->assertJsonStructure([
+            'data' => [
+                'id',
+                'name',
+                'code',
+                'user_id',
+                
+            ],
+        ]);
+
+        // Test that the JSON contains the correct data
+        $response->assertJson([
+            'data' => [
+                'id' => $currency->id,
+                'name' => $currency->name,
+                'code' => $currency->code,
+                'user_id' => $user->id,
+            ],
+        ]);
+
+        // Case: another user cannot view this currency
+        $otherUser = User::factory()->create();
+        Sanctum::actingAs($otherUser);
+
+        $response = $this->get(route('currencies.show', $currency));
+        $response->assertStatus(403);
+        $response->assertJson([
+            'message' => 'You are not authorized to view this currency.'
+        ]);
     }
+
 
 
     #[Test]
@@ -118,18 +151,35 @@ final class CurrencyControllerTest extends TestCase
     }
 
 
-    #[Test]
+   #[Test]
     public function destroy_deletes_and_responds_with(): void
     {
-        $currency = Currency::factory()->create();
-        Sanctum::actingAs(User::factory()->create());
+        // Create a currency owned by a specific user
+        $owner = User::factory()->create();
+        $currency = Currency::factory()->create(['user_id' => $owner->id]);
+
+        // Case 1: Owner can delete
+        Sanctum::actingAs($owner);
 
         $response = $this->delete(route('currencies.destroy', $currency));
-
-        $response->assertNoContent();
-
+        $response->assertNoContent(); // 204
         $this->assertModelMissing($currency);
+
+        // Case 2: Non-owner cannot delete
+        $anotherCurrency = Currency::factory()->create(['user_id' => $owner->id]);
+        $nonOwner = User::factory()->create();
+        Sanctum::actingAs($nonOwner);
+
+        $response = $this->delete(route('currencies.destroy', $anotherCurrency));
+        $response->assertStatus(403);
+        $response->assertJson([
+            'message' => 'You are not authorized to delete this currency.'
+        ]);
+
+        // The currency should still exist
+        $this->assertModelExists($anotherCurrency);
     }
+
 
     #[Test]
     public function store_fails_with_invalid_data(): void

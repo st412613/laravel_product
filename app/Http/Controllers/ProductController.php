@@ -8,8 +8,9 @@ use App\Http\Resources\ProductCollection;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 class ProductController extends Controller
 {
@@ -28,21 +29,45 @@ class ProductController extends Controller
         return new ProductResource($product);
     }
 
-    public function show(Request $request, Product $product): ProductResource
-    {
+    public function show(Request $request, Product $product): ProductResource|JsonResponse
+    {   
+        if ($product->user_id !== $request->user()->id) {
+             return response()->json([
+            'message' => 'You are not authorized to view this product.'
+        ], 403);
+        }
+
         return new ProductResource($product);
     }
 
-    public function update(ProductUpdateRequest $request, Product $product): ProductResource
+    public function update(ProductUpdateRequest $request, Product $product): ProductResource|JsonResponse
     {
-        $product->update($request->validated());
-        return new ProductResource($product);
-    }
-
-    public function destroy(Request $request, Product $product): Response
-    {
-        $product->delete();
-        return response()->noContent();
-    }
     
+        if ($product->user_id !== $request->user()->id) {
+             return response()->json([
+            'message' => 'You are not authorized to update this product.'
+        ], 403);
+         
+        }
+        $product->update($request->validated());
+
+        return new ProductResource($product);
+        
+    }
+
+    public function destroy(Request $request, Product $product): Response|JsonResponse
+    {
+        if ($product->user_id !== $request->user()->id) { // no parentheses
+            return response()->json([
+                'message' => 'You are not authorized to delete this product.'
+            ], 403);
+        }
+
+        $product->delete();
+
+        return response()->json([
+            'message' => 'Product deleted successfully.'
+        ], 200);
+    }
+
 }

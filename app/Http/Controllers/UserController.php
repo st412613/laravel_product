@@ -12,50 +12,42 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Http\JsonResponse;
 
 
 
 class UserController extends Controller
 {
-     
-    // Store new user (hash password)
-    public function store(UserStoreRequest $request): UserResource
-    {
-        $data = $request->validated();
-
-        // Hash the password before saving
-        if (isset($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        }
-
-        $user = User::create($data);
-        return new UserResource($user);
-    }
-
     // Show single user
-    public function show(Request $request, User $user): UserResource
+     public function show(Request $request): UserResource
     {
-        return new UserResource($user);
+    
+        return new UserResource($request->user());
+    
     }
 
-    // Update user (hash password if present)
-    public function update(UserUpdateRequest $request, User $user): UserResource
+    // Update user (only if it’s the logged-in user)
+      public function update(UserUpdateRequest $request): UserResource
     {
+        $user = $request->user();
         $data = $request->validated();
 
-        // Hash the password if it exists in the request
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
 
         $user->update($data);
+
         return new UserResource($user);
     }
 
-    // Delete user
-    public function destroy(Request $request, User $user): Response
+    // Delete the logged-in user
+    public function destroy(Request $request): Response
     {
+        $user = $request->user();
         $user->delete();
+
         return response()->noContent();
     }
 }
+

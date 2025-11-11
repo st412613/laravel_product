@@ -9,7 +9,7 @@ use App\Http\Resources\CurrencyResource;
 use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-
+use Illuminate\Http\JsonResponse;
 
 class CurrencyController extends Controller
 {
@@ -31,23 +31,39 @@ class CurrencyController extends Controller
         return new CurrencyResource($currency);
     }
 
-    public function show(Request $request, Currency $currency): CurrencyResource
-    {
+    public function show(Request $request, Currency $currency): CurrencyResource|JsonResponse
+    {   
+        // only allow access if the currency belongs to the logged-in user
+         if ($currency->user_id !== $request->user()->id) {
+             return response()->json([
+            'message' => 'You are not authorized to view this currency.'
+        ], 403);
+        }
         return new CurrencyResource($currency);
     }
 
-    public function update(CurrencyUpdateRequest $request, Currency $currency): CurrencyResource
+    public function update(CurrencyUpdateRequest $request, Currency $currency): CurrencyResource|JsonResponse
     {   
         //  $this->authorize('update', $currency);
         $data = $request->validated();
-        $data['user_id'] = $request->user()->id;
+        if ($currency->user_id !== $request->user()->id) {
+             return response()->json([
+            'message' => 'You are not authorized to updtae this currency.'
+        ], 403);
+        }
+        // $data['user_id'] = $request->user()->id;
         $currency->update($data);
 
         return new CurrencyResource($currency);
     }
     
-    public function destroy(Request $request, Currency $currency): Response
-    {
+    public function destroy(Request $request, Currency $currency): Response|JsonResponse
+    {   
+        if ($currency->user_id !== $request->user()->id) {
+             return response()->json([
+            'message' => 'You are not authorized to delete this currency.'
+        ], 403);
+        }
         $currency->delete();
 
         return response()->noContent();

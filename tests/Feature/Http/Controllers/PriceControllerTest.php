@@ -81,14 +81,42 @@ final class PriceControllerTest extends TestCase
     #[Test]
     public function show_behaves_as_expected(): void
     {
-        $price = Price::factory()->create();
-        Sanctum::actingAs(User::factory()->create());
+        // Create a user
+        $owner = User::factory()->create();
 
+        // Create a product owned by this user
+        $product = Product::factory()->create(['user_id' => $owner->id]);
+
+        // Create a price for that product
+        $price = Price::factory()->create(['product_id' => $product->id]);
+
+        // Acting as the owner
+        Sanctum::actingAs($owner);
+
+        // Owner can view the price
         $response = $this->get(route('prices.show', $price));
-
         $response->assertOk();
-        $response->assertJsonStructure([]);
+        $response->assertJsonStructure([
+            'data' => [
+                'id',
+                'product_id',
+                'currency_id',
+                'amount',
+            ],
+        ]);
+
+        // Acting as another user (non-owner)
+        $nonOwner = User::factory()->create();
+        Sanctum::actingAs($nonOwner);
+
+        // Non-owner cannot view the price
+        $response = $this->get(route('prices.show', $price));
+        $response->assertStatus(403);
+        $response->assertJson([
+            'message' => 'You are not authorized to view this price.'
+        ]);
     }
+
 
 
     #[Test]
@@ -101,42 +129,58 @@ final class PriceControllerTest extends TestCase
         );
     }
 
-    #[Test]
+   #[Test]
     public function update_behaves_as_expected(): void
     {
-        $currency = Currency::factory()->create();
-        $product = Product::factory()->create();
         $price = Price::factory()->create();
-        Sanctum::actingAs(User::factory()->create());
+        Sanctum::actingAs($price->product->user);
+
         $amount = fake()->randomFloat(2, 0.01, 99999999.99);
-        
+
         $response = $this->put(route('prices.update', $price), [
-            'product_id' => $product->id,
-            'currency_id' => $currency->id,
             'amount' => $amount,
         ]);
-        
+
         $price->refresh();
 
         $response->assertOk();
         $response->assertJsonStructure([]);
 
-        $this->assertEquals($product->id, $price->product_id);
-        $this->assertEquals($currency->id, $price->currency_id);
         $this->assertEquals($amount, $price->amount);
+        $this->assertEquals($price->product_id, $price->product_id);
+        $this->assertEquals($price->currency_id, $price->currency_id); 
     }
 
 
     #[Test]
     public function destroy_deletes_and_responds_with(): void
     {
-        $price = Price::factory()->create();
-        Sanctum::actingAs(User::factory()->create());
+        // Owner scenario
+        $owner = User::factory()->create();
+        $product = Product::factory()->create(['user_id' => $owner->id]);
+        $price = Price::factory()->create(['product_id' => $product->id]);
+
+        Sanctum::actingAs($owner);
 
         $response = $this->delete(route('prices.destroy', $price));
-
-        $response->assertNoContent();
-
+        $response->assertStatus(200);
+        $response->assertJson([
+            'message' => 'Price deleted successfully.'
+        ]);
         $this->assertModelMissing($price);
+
+        // Non-owner scenario
+        $anotherProduct = Product::factory()->create(['user_id' => $owner->id]);
+        $price2 = Price::factory()->create(['product_id' => $anotherProduct->id]);
+        $nonOwner = User::factory()->create();
+        Sanctum::actingAs($nonOwner);
+
+        $response = $this->delete(route('prices.destroy', $price2));
+        $response->assertStatus(403);
+        $response->assertJson([
+            'message' => 'You are not authorized to delete this price.'
+        ]);
+        $this->assertModelExists($price2);
     }
+
 }

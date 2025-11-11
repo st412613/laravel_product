@@ -68,17 +68,36 @@ final class ProductControllerTest extends TestCase
     }
 
 
-    #[Test]
-    public function show_behaves_as_expected(): void
-    {
-        $product = Product::factory()->create();
-        Sanctum::actingAs(User::factory()->create());
+ #[Test]
+public function show_behaves_as_expected(): void
+{
+        // Create a product owned by a specific user
+        $owner = User::factory()->create();
+        $product = Product::factory()->create(['user_id' => $owner->id]);
 
+        // Case 1: Owner can view the product
+        Sanctum::actingAs($owner);
         $response = $this->get(route('products.show', $product));
-
         $response->assertOk();
-        $response->assertJsonStructure([]);
-    }
+        $response->assertJsonStructure([
+            'data' => [
+                'id',
+                'name',
+                'user_id',
+                // add other fields if needed
+            ]
+        ]);
+
+        // Case 2: Non-owner cannot view the product
+        $otherUser = User::factory()->create();
+        Sanctum::actingAs($otherUser);
+        $response = $this->get(route('products.show', $product));
+        $response->assertStatus(403);
+        $response->assertJson([
+            'message' => 'You are not authorized to view this product.'
+        ]);
+}
+
 
 
     #[Test]
@@ -94,37 +113,75 @@ final class ProductControllerTest extends TestCase
     #[Test]
     public function update_behaves_as_expected(): void
     {
-        $product = Product::factory()->create();
-        $name = fake()->name();
-        $user = User::factory()->create();
-        Sanctum::actingAs($user);
+        // Create a product owned by a specific user
+        $owner = User::factory()->create();
+        $product = Product::factory()->create(['user_id' => $owner->id]);
+        $newName = fake()->name();
 
+        // Case 1: Owner can update
+        Sanctum::actingAs($owner);
         $response = $this->put(route('products.update', $product), [
-            'name' => $name,
-            'user_id' => $user->id,
+            'name' => $newName,
+            // Do NOT send user_id, ownership cannot change
         ]);
 
         $product->refresh();
 
         $response->assertOk();
-        $response->assertJsonStructure([]);
+        $response->assertJsonStructure([
+            'data' => [
+                'id',
+                'name',
+                'user_id',
+                // Add other fields if needed
+            ]
+        ]);
 
-        $this->assertEquals($name, $product->name);
-        $this->assertEquals($user->id, $product->user_id);
+        $this->assertEquals($newName, $product->name);
+        $this->assertEquals($owner->id, $product->user_id);
+
+        // Case 2: Non-owner cannot update
+        $otherUser = User::factory()->create();
+        Sanctum::actingAs($otherUser);
+        $response = $this->put(route('products.update', $product), [
+            'name' => fake()->name(),
+        ]);
+
+        $response->assertStatus(403);
+        $response->assertJson([
+            'message' => 'You are not authorized to update this product.'
+        ]);
     }
 
-
-    #[Test]
+   #[Test]
     public function destroy_deletes_and_responds_with(): void
     {
-        $product = Product::factory()->create();
-        Sanctum::actingAs(User::factory()->create());
+        // Create a product owned by a specific user
+        $owner = User::factory()->create();
+        $product = Product::factory()->create(['user_id' => $owner->id]);
 
+        // Case 1: Owner can delete
+        Sanctum::actingAs($owner);
         $response = $this->delete(route('products.destroy', $product));
-
-        $response->assertNoContent();
-
+        $response->assertStatus(200); // 200 because controller returns JSON
+        $response->assertJson([
+            'message' => 'Product deleted successfully.'
+        ]);
         $this->assertModelMissing($product);
+
+        // Case 2: Non-owner cannot delete
+        $anotherProduct = Product::factory()->create(['user_id' => $owner->id]);
+        $nonOwner = User::factory()->create();
+        Sanctum::actingAs($nonOwner);
+
+        $response = $this->delete(route('products.destroy', $anotherProduct));
+        $response->assertStatus(403);
+        $response->assertJson([
+            'message' => 'You are not authorized to delete this product.'
+        ]);
+
+        // The product should still exist
+        $this->assertModelExists($anotherProduct);
     }
 
     #[Test]

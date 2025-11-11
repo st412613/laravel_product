@@ -144,57 +144,22 @@ final class UserControllerTest extends TestCase
     use AdditionalAssertions, RefreshDatabase, WithFaker;
 
     #[Test]
-    public function store_uses_form_request_validation(): void
-    {
-        $this->assertActionUsesFormRequest(
-            \App\Http\Controllers\UserController::class,
-            'store',
-            \App\Http\Requests\UserStoreRequest::class
-        );
-    }
-
-    #[Test]
-    public function store_saves(): void
-    {   
-        $user = User::factory()->create();
-        Sanctum::actingAs($user);
-
-        $name = fake()->name();
-        $email = fake()->safeEmail();
-        $password = fake()->password();
-
-        $response = $this->post(route('users.store'), [
-            'name' => $name,
-            'email' => $email,
-            'password' => $password,
-            'password_confirmation' => $password, // important for confirmed rule
-        ]);
-
-        $users = User::query()
-            ->where('name', $name)
-            ->where('email', $email)
-            ->get();
-
-        $this->assertCount(1, $users);
-        $user = $users->first();
-
-        $response->assertCreated();
-        $response->assertJsonStructure([]);
-
-        // Check hashed password
-        $this->assertTrue(Hash::check($password, $user->password));
-    }
-
-    #[Test]
     public function show_behaves_as_expected(): void
     {
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $response = $this->get(route('users.show', $user));
+        // Since we only allow logged-in user to see their own data
+        $response = $this->getJson('/api/users'); // Changed to /api/user
 
         $response->assertOk();
-        $response->assertJsonStructure([]);
+        $response->assertJsonStructure([
+            'data' => [
+                'id',
+                'name',
+                'email',
+            ],
+        ]);
     }
 
     #[Test]
@@ -217,17 +182,26 @@ final class UserControllerTest extends TestCase
         $email = fake()->safeEmail();
         $password = fake()->password();
 
-        $response = $this->put(route('users.update', $user), [
+        // Update without passing ID — controller uses logged-in user
+        $response = $this->putJson('/api/users', [
             'name' => $name,
             'email' => $email,
             'password' => $password,
-            'password_confirmation' => $password, // required for confirmed rule
+            'password_confirmation' => $password,
         ]);
 
         $user->refresh();
 
         $response->assertOk();
-        $response->assertJsonStructure([]);
+        $response->assertJsonStructure([
+            'data' => [
+                'id',
+                'name',
+                'email',
+            ],
+        ]);
+
+
 
         $this->assertEquals($name, $user->name);
         $this->assertEquals($email, $user->email);
@@ -240,10 +214,10 @@ final class UserControllerTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $response = $this->delete(route('users.destroy', $user));
+        // Delete logged-in user
+        $response = $this->deleteJson('/api/users');
 
         $response->assertNoContent();
-
         $this->assertModelMissing($user);
     }
 }

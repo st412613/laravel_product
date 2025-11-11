@@ -20,8 +20,8 @@ class PriceUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_id' => ['required', 'integer', 'exists:products,id'],
-            'currency_id' => ['required', 'integer', 'exists:currencies,id'],
+            // 'product_id' => ['required', 'integer', 'exists:products,id'],
+            // 'currency_id' => ['required', 'integer', 'exists:currencies,id'],
             'amount' => ['required', 'numeric', 'between:-99999999.99,99999999.99'],
         ];
     }

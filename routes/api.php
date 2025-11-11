@@ -14,7 +14,9 @@ Route::post('/login', [AuthController::class, 'login'])
 
 
 Route::post('/logout', [AuthController::class, 'logout']);
-Route::apiResource('users', UserController::class)->except(['index']);
+Route::get('/users', [UserController::class, 'show']);
+Route::put('/users', [UserController::class, 'update']);
+Route::delete('/users', [UserController::class, 'destroy']);
 Route::apiResource('products', ProductController::class);
 Route::apiResource('currencies', CurrencyController::class);
 Route::apiResource('prices', PriceController::class);

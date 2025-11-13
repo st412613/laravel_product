@@ -13,10 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
-        // 🔹 Add global middleware for API routes only
+        //  global middleware for API routes only
         $middleware->api([
             'auth:sanctum',
-            \App\Http\Middleware\CheckTokenExpiry::class,
         ]);
 
     })

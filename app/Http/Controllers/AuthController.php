@@ -13,24 +13,27 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    // ✅ REGISTER
+    // REGISTER
     public function register(UserStoreRequest $request): JsonResponse
     {
         $data = $request->validated();
         $data['password'] = Hash::make($data['password']);
 
         $user = User::create($data);
-
+        
         // Token create with expiry
-        $tokenResult = $user->createToken('api-token');
-        $token = $tokenResult->accessToken;
-        $token->expires_at = now()->addDays(config('sanctum.token_expiry_days', 7)); // configurable
-        $token->save();
+        $minutes = config('sanctum.expiration')?? 60;
+
+        // Calculate expiry datetime
+        $expiresAt = now()->addMinutes($minutes);
+
+        // Create token with expiry
+        $tokenResult = $user->createToken('api-token', ['*'], $expiresAt);
 
         return (new UserResource($user))
             ->additional([
                 'token' => $tokenResult->plainTextToken,
-                'expires_at' => $token->expires_at,
+                'expires_at' => $expiresAt,
             ])
             ->response()
             ->setStatusCode(201);
@@ -48,17 +51,19 @@ class AuthController extends Controller
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
-
         // Token create with expiry
-        $tokenResult = $user->createToken('api-token');
-        $token = $tokenResult->accessToken;
-        $token->expires_at = now()->addDays(config('sanctum.token_expiry_days', 7));
-        $token->save();
+        $minutes = config('sanctum.expiration')?? 60;
+
+        // Calculate expiry datetime
+        $expiresAt = now()->addMinutes($minutes);
+
+        // Create token with expiry
+        $tokenResult = $user->createToken('api-token', ['*'], $expiresAt);
 
         return (new UserResource($user))
             ->additional([
                 'token' => $tokenResult->plainTextToken,
-                'expires_at' => $token->expires_at,
+                'expires_at' => $expiresAt
             ])
             ->response()
             ->setStatusCode(200);

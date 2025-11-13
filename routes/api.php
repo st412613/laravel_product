@@ -7,10 +7,10 @@ use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\PriceController;
 
 Route::post('/register', [AuthController::class, 'register'])
-    ->withoutMiddleware(['auth:sanctum', \App\Http\Middleware\CheckTokenExpiry::class]);
+    ->withoutMiddleware(['auth:sanctum']);
 
 Route::post('/login', [AuthController::class, 'login'])
-    ->withoutMiddleware(['auth:sanctum', \App\Http\Middleware\CheckTokenExpiry::class]);
+    ->withoutMiddleware(['auth:sanctum']);
 
 
 Route::post('/logout', [AuthController::class, 'logout']);
